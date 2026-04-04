@@ -1,0 +1,57 @@
+# version: '3.8'
+
+services:
+
+  db:
+    image: postgres:15
+    container_name: insurance_db
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: securepassword123
+      POSTGRES_DB: insurance_platform
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  auth-service:
+    build: ./services/auth-service
+    container_name: auth_service
+    ports:
+      - "5001:5001"
+    environment:
+      - DATABASE_URL=postgresql://admin:securepassword123@db:5432/insurance_platform
+      - JWT_SECRET=your-super-secret-jwt-key-change-this
+      - MFA_ISSUER=InsurancePlatform
+      - TZ=Australia/Sydney
+    depends_on:
+      - db
+
+  fraud-service:
+    build: ./services/fraud-service
+    container_name: fraud_service
+    ports:
+      - "5005:5005"
+    environment:
+      - DATABASE_URL=postgresql://admin:securepassword123@db:5432/insurance_platform
+      - TZ=Australia/Sydney
+    depends_on:
+      - db
+
+  signing-service:
+    build: ./services/signing-service
+    container_name: signing_service
+    ports:
+      - "5004:5004"
+    environment:
+      - DATABASE_URL=postgresql://admin:securepassword123@db:5432/insurance_platform
+      - AWS_REGION=ap-southeast-2
+      - AWS_KMS_KEY_ID=your-kms-key-id-here
+      - TZ=Australia/Sydney
+      - PYTHONPATH=/app
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:

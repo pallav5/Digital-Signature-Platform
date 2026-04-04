@@ -1,0 +1,7 @@
+flask
+boto3
+cryptography
+psycopg2-binary
+python-dotenv
+flask-jwt-extended
+reportlab
