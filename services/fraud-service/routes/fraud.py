@@ -3,6 +3,8 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from models import db, FraudEvent, AuditLog
 from datetime import datetime
 import json
+from sqlalchemy import text   # ADD THIS LINE
+
 
 fraud_bp = Blueprint('fraud', __name__)
 
@@ -94,6 +96,20 @@ def analyse():
         current_hour = datetime.utcnow().hour
         unusual_hour = current_hour >= 0 and current_hour <= 5
         
+            # Count proposals created in last hour using raw SQL
+        try:
+            print(f"DEBUG: Counting proposals for user_id: {user_id}")
+            
+            result = db.session.execute(
+                text("SELECT COUNT(*) FROM proposals WHERE user_id = :user_id AND created_at >= NOW() - INTERVAL '1 hour'"),
+                {'user_id': str(user_id)}
+            )
+            recent_proposals = result.scalar()
+            print(f"Recent proposals (last hour): {recent_proposals}")
+        except Exception as e:
+            print(f"Error counting proposals: {e}")
+            recent_proposals = 0
+        
         # Calculate risk score
         risk_score = 0.0
         
@@ -109,6 +125,13 @@ def analyse():
             risk_score += 0.2
         if successful_signings >= 5:
             risk_score += 0.2
+
+
+        #  Rapid proposal creation check
+        if recent_proposals >= 5:
+            risk_score += 0.3  # +0.3 for 5+ proposals in an hour
+        if recent_proposals >= 10:
+            risk_score += 0.2  # +0.5 total for 10+ proposals    
         
         risk_score = min(round(risk_score, 2), 1.0)
         

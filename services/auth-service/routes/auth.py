@@ -236,3 +236,24 @@ def get_me():
         'mfa_enabled': user.mfa_enabled,
         'created_at': user.created_at.isoformat()
     }), 200
+
+
+@auth_bp.route('/user/<user_id>', methods=['GET'])
+@jwt_required()
+def get_user(user_id):
+    """Get user email by ID"""
+    current_user_id = get_jwt_identity()
+    
+    # Only allow users to get their own info
+    if str(current_user_id) != str(user_id):
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    
+    return jsonify({
+        'id': str(user.id),
+        'email': user.email,
+        'full_name': user.full_name
+    }), 200

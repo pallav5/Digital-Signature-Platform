@@ -38,6 +38,8 @@ class Signature(db.Model):
     ip_address = db.Column(db.String(50), nullable=True)
     device_info = db.Column(db.Text, nullable=True)
     user_agent = db.Column(db.Text, nullable=True)
+    final_pdf_hash = db.Column(db.String(500), nullable=True)
+
 
 class AuditLog(db.Model):
     __tablename__ = 'audit_logs'
