@@ -9,6 +9,7 @@ services:
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: securepassword123
       POSTGRES_DB: insurance_platform
+      TZ: Australia/Sydney
     ports:
       - "5432:5432"
     volumes:

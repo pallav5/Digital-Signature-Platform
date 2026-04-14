@@ -16,7 +16,9 @@ def log_action(user_id, action, request, risk_score=0.0):
         action=action,
         ip_address=request.remote_addr,
         device_info=request.headers.get('User-Agent'),
-        risk_score=risk_score
+        risk_score=risk_score,
+        created_at=datetime.utcnow()  # Make sure this is UTC
+
     )
     db.session.add(log)
     db.session.commit()

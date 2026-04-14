@@ -17,6 +17,13 @@ import requests
 
 import pytz
 
+def get_sydney_time(utc_datetime):
+    """Convert UTC datetime to Sydney time with automatic DST"""
+    sydney_tz = pytz.timezone('Australia/Sydney')
+    if utc_datetime.tzinfo is None:
+        utc_datetime = pytz.utc.localize(utc_datetime)
+    return utc_datetime.astimezone(sydney_tz)
+
 def get_user_email(user_id):
     """Fetch user email from auth service"""
     try:
@@ -317,7 +324,7 @@ def generate_pdf(proposal, signature=None):
     p.line(40, ty - 25, width - 40, ty - 25)
 
     if signature:
-    # Signed state - taller box for device info
+        # Signed state - taller box for device info
         p.setFillColor(colors.HexColor('#276749'))
         p.rect(40, ty - 130, width - 80, 95, fill=True, stroke=False)
         p.setFillColor(colors.white)
@@ -326,11 +333,12 @@ def generate_pdf(proposal, signature=None):
         
         p.setFont("Helvetica", 9)
         
-        from datetime import timedelta
-        aus_time = signature.signed_at + timedelta(hours=11)
-        
-        
-        p.drawString(55, ty - 73, f"Signed at: {aus_time.strftime('%d %B %Y, %H:%M:%S')}, AEDT")
+        # Convert UTC to Sydney time with automatic DST
+        sydney_time = get_sydney_time(signature.signed_at)
+        time_str = sydney_time.strftime('%d %B %Y %H:%M:%S')
+        tz_str = sydney_time.strftime('%Z')  # AEDT or AEST
+
+        p.drawString(55, ty - 73, f"Signed at: {time_str} {tz_str}")
         
         signature_id_str = str(signature.id)
         
@@ -506,9 +514,8 @@ def sign_proposal(proposal_id):
         log_action(user_id, 'SIGNING_FAILED', request, risk_score=0.5)
         return jsonify({'error': f'KMS signing failed: {str(e)}'}), 500
 
-    # Create signature record
-    aus_tz = pytz.timezone('Australia/Sydney')
-    signed_at = datetime.now(aus_tz)
+        # Create signature record
+    signed_at = datetime.utcnow()
     signature = Signature(
         proposal_id=proposal.id,
         user_id=user_id,
@@ -523,28 +530,18 @@ def sign_proposal(proposal_id):
     )
     db.session.add(signature)
 
-    # Generate FINAL PDF with signature (this is the one that will be viewed/downloaded)
+    # Generate FINAL PDF with signature and store final hash
     final_pdf_bytes = generate_pdf(proposal, signature)
     with open(pdf_path, 'wb') as f:
         f.write(final_pdf_bytes)
     
-    proposal.pdf_path = pdf_path
-    proposal.status = 'signed'
-    db.session.commit()
-
-
-        # Generate FINAL PDF with signature
-    final_pdf_bytes = generate_pdf(proposal, signature)
-    with open(pdf_path, 'wb') as f:
-        f.write(final_pdf_bytes)
-    
-    # ADD THIS - Store final PDF hash for tamper detection
+    # Store final PDF hash for tamper detection
     final_pdf_hash = hashlib.sha256(final_pdf_bytes).hexdigest()
     signature.final_pdf_hash = final_pdf_hash
     
     proposal.pdf_path = pdf_path
     proposal.status = 'signed'
-    db.session.commit()
+    db.session.commit()  # Only ONE commit
 
     log_action(user_id, 'PROPOSAL_SIGNED', request)
 

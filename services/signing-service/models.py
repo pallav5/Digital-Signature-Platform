@@ -31,7 +31,7 @@ class Signature(db.Model):
     user_id = db.Column(db.String(36), nullable=False)
     signature_hash = db.Column(db.String(500), nullable=True)
     kms_key_id = db.Column(db.String(255), nullable=True)
-    signed_at = db.Column(db.DateTime, default=lambda: datetime.now(pytz.timezone('Australia/Sydney')))
+    signed_at = db.Column(db.DateTime, default=datetime.utcnow)  # Should be utcnow
     is_valid = db.Column(db.Boolean, default=True)
 
     document_hash = db.Column(db.String(500), nullable=True)
