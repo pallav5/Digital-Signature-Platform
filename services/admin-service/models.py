@@ -77,3 +77,5 @@ class FraudEvent(db.Model):
     risk_score = db.Column(db.Float, default=0.0)
     details = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+# created_at = db.Column(db.DateTime, default=datetime.utcnow)
