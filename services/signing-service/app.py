@@ -11,7 +11,7 @@ load_dotenv()
 app = Flask(__name__)
 
 # CORS configuration - allow React frontend
-CORS(app, 
+CORS(app,
      origins=["http://localhost:3000", "http://192.168.1.106:3000"],
      methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
      allow_headers=["Content-Type", "Authorization"],
@@ -30,4 +30,6 @@ with app.app_context():
     db.create_all()
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5004, debug=True)
+    # FIX: debug mode now controlled by environment variable, never hardcoded True
+    app.run(host='0.0.0.0', port=5004,
+            debug=os.getenv('FLASK_DEBUG', 'false').lower() == 'true')
